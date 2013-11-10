@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Surveillance</title>
+
+    <meta charset="UTF-8">
+
+    <link rel="stylesheet" type="text/css" href="css/dc.css"/>
+</head>
+<style>
+body{
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+	font-weight:200;
+	font-size:16px;
+}
+
+.dc-chart {
+  margin-bottom: 20px;
+  float: none;
+}
+
+.dc-chart g.row text {
+    fill: black;
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+	font-weight:200;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.dc-chart path {
+    stroke-width: 1;
+    stroke: #fff;
+}
+
+
+.dc-chart .selected path {
+    stroke-width: 1;
+    stroke: #fff;
+    fill-opacity: 1;
+}
+
+.dc-chart .deselected path {
+    stroke-width: 1;
+    stroke: #fff;
+}
+
+.reset {
+  padding-left: 1em;
+  font-weight:200;
+  color: #aaa;
+}
+
+.reset-all {
+  color: #aaa;
+}
+
+.axis path, .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.axis text {
+  font: 18px;
+}
+
+.title {
+  font-weight: 100;
+  font-size: 18px;
+}
+
+.brush rect.extent {
+  fill: steelblue;
+  fill-opacity: .125;
+}
+
+.brush .resize path {
+  fill: #eee;
+  stroke: #666;
+}
+
+#time-chart .bar {
+  fill: LightSlateGray;
+}
+
+</style>
+<body>
+
+<div>
+	<div class="row" style="display:block">
+		<div id="map">
+			<span class="title">Surveillance by sequencing</span>
+			<a class="reset title" href="javascript:mapChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+	        <div class="clearfix"></div>
+		</div>
+	</div>
+	<div class="row" style="display:block">
+		<div id="host-chart" style="display:inline-block">
+			<span class="title">Surveillance by host</span>
+			<a class="reset" href="javascript:hostChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+	        <div class="clearfix"></div>
+		</div>
+		 <div class="clearfix"></div>
+		<div id="time-chart" style="display:inline-block">
+			<span class="title">Surveillance by sequencing</span>
+			<a class="reset" href="javascript:timeChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+	        <div class="clearfix"></div>
+		</div>
+	</div>
+	<div class="row">
+		<div>
+			<span class="reset" style="display: none;"> | Current filter: <span class="filter"></span>
+			<a href="javascript:dc.filterAll(); dc.renderAll();">Reset All</a></span>
+	        <div class="clearfix"></div>
+		</div>
+	</div>
+
+</div>
+
+<script type="text/javascript" src="javascript/d3.v3.min.js"></script>
+<script type="text/javascript" src="javascript/d3.geo.projection.v0.min.js"></script>
+<script type="text/javascript" src="javascript/colorbrewer.js"></script>
+<script type="text/javascript" src="javascript/crossfilter.min.js"></script>
+<script type="text/javascript" src="javascript/dc.js"></script>
+<script type="text/javascript">
+    var numberFormat = d3.format(".2f");
+
+    var mapChart = dc.geoChoroplethChart("#map");
+    var hostChart = dc.rowChart("#host-chart");
+    var timeChart = dc.barChart("#time-chart");
+
+	  // Various formatters.
+	var formatNumber = d3.format(",d"),
+		formatDate = d3.time.format("%Y-%m-%d"),
+		formatDate2 = d3.time.format("%d/%m/%Y"),
+		formatMonth = d3.time.format("%Y-%m"),
+		formatYear = d3.time.format("%Y"),
+		formatPrettyDate = d3.time.format("%d %b"),
+		formatMonth = d3.time.format("%b %Y");
+
+//    d3.csv("data/IRDB_Surveillance_Data.csv", function(error, csv) {
+    d3.csv("data/IRDB_Isolates.csv", function(error, csv) {
+		if (error) return console.log("there was an error loading the data: " + error);
+
+		var records = [];
+	
+		// A little coercion, since the CSV is untyped.
+		csv.forEach(function(d, i) {
+			d.date = formatDate2.parse(d["Collection Date"]);
+			if (d.date == null) {
+				d.date = formatDate.parse(d["Collection Date"]);
+			}
+			if (d.date == null) {
+				d.date = formatMonth.parse(d["Collection Date"]);
+			}
+			if (d.date == null) {
+				d.date = formatYear.parse(d["Collection Date"]);
+			}
+			var h = (d.Host || "").toLowerCase();
+			
+			if (h.indexOf("duck") !== -1) {
+				d.host2 = "duck";
+			} else if (h.indexOf("chicken") !== -1) {
+				d.host2 = "chicken";
+			} else if (h.indexOf("swine") !== -1 || h.indexOf("pig") !== -1) {
+				d.host2 = "swine";
+			} else {
+				d.host2 = null;
+			}
+
+			if (d.date !== null && d.Country !== null && !(typeof d.Country === "undefined")) {
+				records.push(d);
+			}
+		});
+
+		var data = crossfilter(records);
+
+		var location = data.dimension(function (d) {
+			return d.Country;
+		});
+		var locations = location.group().reduceSum(function (d) {
+			return 1;
+		});
+
+		var host = data.dimension(function(d) { 
+			return d.host2; 
+		});
+		var hosts = host.group(function(d) { 
+			return d; 
+		});
+
+		var date = data.dimension(function(d) { 
+			return d.date; 
+		});
+		var years = date.group(d3.time.year);
+
+		var width = 1280,
+			height = 700;
+
+		var projection = d3.geo.robinson()
+			.scale(240)
+			.translate([width / 2, height / 2])
+			.precision(.1);
+
+
+		var categories = 64;
+		var color = d3.scale.linear()
+					.domain([0, 10])
+					.range(["beige", "darkslateblue"])
+					.interpolate(d3.interpolateLab);
+
+		d3.json("../geo/countries_50m.json", function (locationsJson) {
+			
+		mapChart.width(width)
+			.height(height)
+			.transitionDuration(100)
+			.dimension(location)
+			.group(locations)
+			.colors(color)
+			.colorCalculator(function (d) { return d ? mapChart.colors()(Math.log(d)) : '#888'; })
+			.overlayGeoJson(locationsJson.features, "location", function (d) {
+				return d.properties.admin;
+			})
+			.projection(projection)
+			.on("filtered", function() { dc.renderAll(); })
+			.title(function (d) {
+				return "Location: " + d.key + " " + d.value;
+			});
+
+		hostChart.width(280)
+			.height(240)
+			.transitionDuration(100)
+			.margins({top: 0, right: 20, bottom: 38, left: 20})
+			.group(hosts)
+			.dimension(host)
+			.colors(d3.scale.category10())
+			.label(function (d) {
+				return d.value + " " + d.key; 
+			})
+			.title(function(d) {return d.value;})
+			.elasticX(true)
+			.on("filtered", function() { dc.renderAll(); })
+			.xAxis().ticks(5);
+
+		timeChart.width(900)
+			.transitionDuration(100)
+			.height(200)
+			.margins({top: 10, right: 20, bottom: 40, left: 80})
+			.dimension(date)
+			.group(years)
+			.centerBar(true)
+			.x(d3.time.scale().domain([new Date(1970, 0, 1), new Date()]))
+			.elasticY(true)
+			.round(d3.time.year.round)
+			.xUnits(d3.time.years);
+
+
+			dc.renderAll();
+		});
+	});
+</script>
+</body>
+</html>

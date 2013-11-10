@@ -1,0 +1,29 @@
+body {
+    font: 10px sans-serif;
+}
+
+.treePanel {
+    -webkit-user-select: none; /* Chrome/Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* IE10 */
+    -o-user-select: none;
+    user-select: none;
+}
+
+.svgBox {
+	/*display: inline-block;*/
+	float: left;
+	border: 1px solid;
+	background: #F5F5F5;
+	border-color: #CCCCCC;
+}
+
+.leaflet-control-zoom {
+            box-shadow: 0 0px;
+            background: white;
+            background: rgba(255,255,255,0.8);
+            border-style: solid;
+            border-width: 1px;
+            border-color: #CCCCCC;
+            border-radius: 5px;
+}

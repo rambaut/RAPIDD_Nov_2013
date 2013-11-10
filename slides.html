@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="css/slides.css" />
+
+<link rel="stylesheet" type="text/css" href="css/pandemix.css">
+<link rel="stylesheet" type="text/css" href="css/leaflet.css" />
+<link rel="stylesheet" type="text/css" href="css/MarkerCluster.css" />
+<link rel="stylesheet" type="text/css" href="css/MarkerCluster.Default.css" />
+
+<link rel="stylesheet" type="text/css" href="css/dc.css"/>
+
+<script src="javascript/d3.v3.min.js"></script>
+<script src="javascript/jquery-2.0.2.js"></script>
+<script src="javascript/crossfilter.min.js"></script>
+<script src="javascript/leaflet.js"></script>
+<script src="javascript/leaflet.markercluster.js"></script>
+<script src="javascript/pandemix.js"></script>
+
+<script src="javascript/timePanel.js"></script>
+<script src="javascript/mapPanel.js"></script>
+<script src="javascript/treePanel.js"></script>
+<script src="javascript/tablePanel.js"></script>
+<script src="javascript/traitPanel.js"></script>
+<script src="javascript/traitSelectionPanel.js"></script>
+<script src="javascript/legendPanel.js"></script>
+
+<script src="javascript/regionOutlineMapLayer.js"></script>        
+<script src="javascript/locationMapLayer.js"></script> 
+<script src="javascript/virusParticleMapLayer.js"></script> 
+<script src="javascript/bubbleChartMapLayer.js"></script> 
+<script src="javascript/bubbleTransMapLayer.js"></script>
+<script src="javascript/treeMapLayer.js"></script>
+
+<script src="javascript/dc.js"></script>
+<script src="javascript/queue.min.js"></script>
+<script src="javascript/utils.js"></script>
+
+<!-- Pandemix -->
+<style type="text/css">
+		body {
+			font-family: "Helvetica Neue",Arial,sans-serif;
+			font-weight: 200;
+			font-size: 24px;
+		}
+
+	#playPause {
+		margin-right: 10px;
+	}
+
+	#slide3_map {
+	  width: 800px;
+	  height: 800px;
+	}
+
+	.leafText {
+			font-family: "Helvetica Neue",Arial,sans-serif;
+			font-weight: 400;
+			font-size: 10px;
+	}
+	
+	.link {
+		stroke-width: 3px;
+	}
+
+	.link.highlighted {
+		stroke: orange;
+		stroke-width: 4px;
+	}
+
+
+	.legendPanel {
+		width: 200px;
+		height: 800px;
+		border: none;
+	}
+
+	.treePanel.svgBox {
+		width: 1400px;
+		height: 800px;
+		font-size: 18px;
+	}
+
+	.leaflet-control-zoom {
+				box-shadow: 0 0px;
+				background: white;
+				background: rgba(255,255,255,0.8);
+				border-style: solid;
+				border-width: 1px;
+				border-color: #CCCCCC;
+				border-radius: 5px;
+	}
+</style>
+
+<!-- DC charts styles -->
+<style type="text/css">
+
+.dc-chart g.row text {
+    fill: black;
+	font-weight: lighter;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.reset {
+  padding-left: 1em;
+  font-size: smaller;
+  color: #aaa;
+}
+
+.reset-all {
+  color: #aaa;
+}
+
+.axis path, .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.axis .tick text {
+	font-family: "Helvetica Neue";
+	font-weight: lighter;
+    font-size: 16px;
+}
+
+.title {
+	display: block;
+  font-weight: lighter;
+  font-size: 18px;
+}
+
+.brush rect.extent {
+  fill: steelblue;
+  fill-opacity: .125;
+}
+
+.brush .resize path {
+  fill: #eee;
+  stroke: #666;
+}
+
+.onset-chart .bar {
+  fill: teal;
+}
+
+#onset-chart {
+  width: 280px;
+  height: 180px;
+}
+
+#province-chart {
+  width: 280px;
+  height: 180px;
+}
+
+#age-chart {
+  width: 320px;
+  height: 180px;
+}
+
+#age-chart .bar {
+  fill: #8B475D;
+}
+
+#gender-chart {
+  width: 180px;
+  height: 180px;
+}
+
+#death-chart {
+  width: 180px;
+  height: 180px;
+}
+
+#data-count {
+	text-align: right;
+	width: 850px;
+    margin-top: 10px;
+    margin-right: 15px;
+	font-size: 14px;
+}
+
+#data-count .filter-count {
+	color: #3182bd;
+	font-weight: 400;
+}
+
+#data-count .total-count {
+	color: #3182bd;
+	font-weight: 400;
+}
+
+.inline-div {
+  display: inline-block;
+}
+
+.align-top {
+  vertical-align: top;
+}
+
+.align-bottom {
+  vertical-align: bottom;
+}
+
+.block-div {
+  display: block;
+}
+</style>
+
+<!-- Case Data Styles -->
+<style type="text/css">
+
+	svg {
+		display: block;
+	}
+
+	circle {
+		fill: brown;
+		fill-opacity: .5;
+		stroke: #fff;
+	}
+
+	circle:hover {
+		fill: red;
+		fill-opacity: 1;
+		stroke: #fff;
+	}
+
+	#province path {
+		fill: steelblue;
+		fill-opacity: 0.25;
+		stroke: #fff;
+		stroke-width: 1.5px;
+		vector-effect: non-scaling-stroke;
+	}
+
+	.info {
+		width: 200px;
+		padding: 6px 8px;
+		font: 14px/16px Helvetica, Arial, sans-serif;
+		background: white;
+		background: rgba(255,255,255,0.8);
+		box-shadow: 0 0 15px rgba(0,0,0,0.2);
+		border-radius: 5px;
+	}
+	.info h4 {
+		margin: 0 0 5px;
+		color: #777;
+	}
+
+	.legend {
+		width: 80px;
+		line-height: 18px;
+		color: #555;
+	}
+	.legend i {
+		width: 18px;
+		height: 18px;
+		float: left;
+		margin-right: 8px;
+		opacity: 0.7;
+	}
+
+	#map {
+		width: 600px;
+		height: 400px;
+	}
+
+	.leaflet-control-zoom {
+		box-shadow: 0 0px;
+		background: white;
+		background: rgba(255,255,255,0.8);
+		border-style: solid;
+		border-width: 1px;
+		border-color: #CCCCCC;
+		border-radius: 5px;
+	}
+
+</style>
+
+<style>
+#subtype-chart .bar {
+  fill: teal;
+}
+
+</style>
+<body>
+
+<section>
+	<div class="block-div">
+		<div class="inline-div align-top" style="width: 40%">
+			<h1>H7N9 human cases</h1>
+			<h2><span class="slide1_date-calendar"> </span></h2>
+			<div>
+				<div id="slide1_province-chart" class="dc-chart inline-div align-top">
+					<span class="title" class="inline-div">Cases by Province</span>
+					<a class="reset title" href="javascript:provinceChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+				</div>
+			</div>
+		</div>
+		<div class="inline-div">
+			<div id="slide1_map" class="align-top" style="width: 600px;height: 600px"></div>
+		</div>
+	</div>
+	<div id="slide1_onset-chart" class="dc-chart onset-chart block-div">
+		<span class="title">Cases by Onset</span>
+		<a class="reset title" href="javascript:onsetChart1.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+	</div>
+	<div class="block-div">
+	<div>
+		<button id="play-button"></button>
+	</div>
+	<div>
+		<span class="slide1_date-calendar"> </span>
+	</div>
+	<div id="slide1_data-count" class="title block-div">	 
+		<span class="filter-count"></span> selected out of <span class="total-count"></span> cases | <a
+			class="reset-all title"
+			href="javascript:dc.filterAll(); renderAll();">reset all</a>
+	</div>
+	</div>
+</section>
+
+<section>
+	<div>
+		<div id="playPause" style="display: inline-block"></div>
+		<div id="globalTime" style="display: inline-block"></div>
+	</div>
+  	<h4>Map: <span class="date-calendar"></span></h4>
+	<div>
+		<div id="slide3_map" style="display: inline-block"></div>
+		<div id="legend" style="display: inline-block; vertical-align:top" ></div>
+	</div>	
+	<button id="map-reset">Reset Map</button>
+	<button id="show-location">Locations</button>
+	<button id="show-HA">HA subtype</button>
+	<button id="show-NA">NA subtype</button>
+	<button id="show-segment">Segment</button>
+</section>
+
+<section>
+	<h4>PB2 Tree</h4>
+	<div>
+		<div id="search" style="display: inline"></div>
+		<div id="color" style="display: inline"></div>
+`	</div>
+	 <div>
+		<div id="zoom1" style="margin-top: 15px; display: inline-block; vertical-align:top"></div>
+		<div id="tree1" style="margin-top: 15px; display: inline-block"></div>
+		<div id="legend1" style="display: inline-block; vertical-align:top" ></div>
+	</div>
+	<button class="show-location">Locations</button>
+	<button class="show-HA">HA subtype</button>
+	<button class="show-NA">NA subtype</button>
+	<button class="show-host">Host</button>
+</section>
+
+<section>
+	 <h4>PB1 Tree</h4>
+	 <div>
+		<div id="zoom2" style="margin-top: 15px; display: inline-block; vertical-align:top"></div>
+		<div id="tree2" style="margin-top: 15px; display: inline-block"></div>
+		<div id="legend2" style="display: inline-block; vertical-align:top" ></div>
+	</div>
+	<button class="show-location">Locations</button>
+	<button class="show-HA">HA subtype</button>
+	<button class="show-NA">NA subtype</button>
+	<button class="show-host">Host</button>
+</section>
+
+<section>
+	 <h4>PA Tree</h4>
+	 <div>
+		<div id="zoom3" style="margin-top: 15px; display: inline-block; vertical-align:top"></div>
+		<div id="tree3" style="margin-top: 15px; display: inline-block"></div>
+		<div id="legend3" style="display: inline-block; vertical-align:top" ></div>
+	</div>
+	<button class="show-location">Locations</button>
+	<button class="show-HA">HA subtype</button>
+	<button class="show-NA">NA subtype</button>
+	<button class="show-host">Host</button>
+</section>
+
+<section>
+	 <h4>NP Tree</h4>
+	 <div>
+		<div id="zoom4" style="margin-top: 15px; display: inline-block; vertical-align:top"></div>
+		<div id="tree4" style="margin-top: 15px; display: inline-block"></div>
+		<div id="legend4" style="display: inline-block; vertical-align:top" ></div>
+	</div>
+	<button class="show-location">Locations</button>
+	<button class="show-HA">HA subtype</button>
+	<button class="show-NA">NA subtype</button>
+	<button class="show-host">Host</button>
+</section>
+
+<section>
+	 <h4>MP Tree</h4>
+	 <div>
+		<div id="zoom5" style="margin-top: 15px; display: inline-block; vertical-align:top"></div>
+		<div id="tree5" style="margin-top: 15px; display: inline-block"></div>
+		<div id="legend5" style="display: inline-block; vertical-align:top" ></div>
+	</div>
+	<button class="show-location">Locations</button>
+	<button class="show-HA">HA subtype</button>
+	<button class="show-NA">NA subtype</button>
+	<button class="show-host">Host</button>
+</section>
+
+<section>
+	 <h4>NS Tree</h4>
+	 <div>
+		<div id="zoom6" style="margin-top: 15px; display: inline-block; vertical-align:top"></div>
+		<div id="tree6" style="margin-top: 15px; display: inline-block"></div>
+		<div id="legend6" style="display: inline-block; vertical-align:top" ></div>
+	</div>
+	<button class="show-location">Locations</button>
+	<button class="show-HA">HA subtype</button>
+	<button class="show-NA">NA subtype</button>
+	<button class="show-host">Host</button>
+</section>
+
+<section>
+    <div id="subtype-map">
+        <strong>Subtype reassortments by location</strong>
+        <a class="reset" href="javascript:subtypeMapChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+        <span class="reset" style="display: none;"> | Current filter: <span class="filter"></span></span>
+    </div>
+
+    <div id="subtype-chart">
+        <strong>Subtype reassortments by time</strong>
+        <a class="reset" href="javascript:subtypeTimeChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+    </div>
+    
+    <div>
+        <a href="javascript:dc.filterAll(); dc.renderAll();">Reset All</a>
+    </div>
+</section>
+
+<section>
+    <div id="host-map">
+        <strong>Host jumps by location</strong>
+        <a class="reset" href="javascript:hostMapChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+        <span class="reset" style="display: none;"> | Current filter: <span class="filter"></span></span>
+    </div>
+
+    <div id="host-chart">
+        <strong>Host jumps by time</strong>
+        <a class="reset" href="javascript:hostTimeChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+    </div>
+    
+    <div>
+        <a href="javascript:dc.filterAll(); dc.renderAll();">Reset All</a>
+    </div>
+</section>
+
+<script src="javascript/stack.v0.min.js"></script>
+<script src="stacks/casedata.js"></script>
+<script src="stacks/trees.js"></script>
+<script src="stacks/hostmap.js"></script>
+<script src="stacks/subtypesmap.js"></script>
+
+
